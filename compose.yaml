@@ -1,0 +1,44 @@
+name: cloudshield-target2
+services:
+  store:
+    build:
+      context: .
+      dockerfile: store/Dockerfile
+    restart: unless-stopped
+    ports:
+    - ${STORE_BIND_IP:-0.0.0.0}:8081:8081
+    mem_limit: 384m
+    cpus: 1.0
+    pids_limit: 120
+    security_opt:
+    - no-new-privileges:true
+  receiver:
+    build:
+      context: .
+      dockerfile: iperf3.Dockerfile
+    restart: unless-stopped
+    command:
+    - -s
+    - -p
+    - '5201'
+    ports:
+    - ${IPERF_BIND_IP:-0.0.0.0}:5201:5201/tcp
+    - ${IPERF_BIND_IP:-0.0.0.0}:5201:5201/udp
+    mem_limit: 160m
+    cpus: 0.65
+  agent:
+    build:
+      context: .
+      dockerfile: agent/Dockerfile
+    restart: unless-stopped
+    pid: host
+    volumes:
+    - /proc:/host/proc:ro
+    environment:
+      RECEIVER: ${CLOUDSHIELD_RECEIVER:-}
+      TELEMETRY_TOKEN: ${TELEMETRY_TOKEN:-}
+    mem_limit: 96m
+    cpus: 0.2
+    security_opt:
+    - no-new-privileges:true
+    network_mode: host
